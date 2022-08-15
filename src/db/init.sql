@@ -16,9 +16,9 @@ CREATE TABLE solutions (
 
 CREATE TABLE submissions (
     submission_id serial PRIMARY KEY,
-    solution_id integer NOT NULL REFERENCES solution (solution_id),
+    solution_id integer NOT NULL REFERENCES solutions (solution_id),
     ok boolean NOT NULL,
     submission json NOT NULL,
-    submission_time timestamp NOT NULL,
+    submission_time timestamp NOT NULL
 );
 
