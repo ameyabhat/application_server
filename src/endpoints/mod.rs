@@ -1,2 +1,2 @@
-pub mod register;
+pub mod handlers;
 pub mod routes;

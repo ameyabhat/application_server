@@ -1,0 +1,9 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  restart:
+    cmds:
+      - docker compose down --volumes
+      - docker compose up
