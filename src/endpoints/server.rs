@@ -1,5 +1,5 @@
-use super::endpoints::handlers::{handle_forgot_token, handle_register};
-use super::endpoints::routes::{forgot_token_route, register_route};
+use super::handlers::{handle_forgot_token, handle_register};
+use super::routes::{forgot_token_route, register_route};
 use warp::{Filter, Rejection, Reply};
 
 pub fn end() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
