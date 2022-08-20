@@ -11,7 +11,7 @@ services:
           "-d",
           "postgres",
           "-U",
-          "root"
+          "generate_admin"
         ]
       timeout: 45s
       interval: 10s
