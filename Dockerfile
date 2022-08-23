@@ -1,4 +1,4 @@
-FROM rust:latest
+FROM rustlang/rust:nightly
 
 RUN cd / &&\
 	cargo new app 

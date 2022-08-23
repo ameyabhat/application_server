@@ -367,6 +367,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_derive",
+ "serde_json",
  "sqlx",
  "tokio",
  "uuid",
@@ -1210,6 +1211,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "dirs",
@@ -1247,6 +1249,7 @@ dependencies = [
  "thiserror",
  "tokio-stream",
  "url",
+ "uuid",
  "webpki-roots",
  "whoami",
 ]

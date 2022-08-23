@@ -1,10 +1,9 @@
-use serde_derive::{Deserialize, Serialize};
 use warp::filters::BoxedFilter;
-use warp::{path, Filter, Reply};
+use warp::{path, Filter};
 
-use super::handlers;
+use super::server;
 
-pub fn register_route() -> BoxedFilter<(handlers::RegisterRequest,)> {
+pub fn register_route() -> BoxedFilter<(server::RegisterRequest,)> {
     warp::post()
         .and(path("register"))
         .and(path::end())

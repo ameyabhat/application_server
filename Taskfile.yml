@@ -7,3 +7,10 @@ tasks:
     cmds:
       - docker compose down --volumes
       - docker compose up
+  db:
+    - docker compose up db -d
+  refresh-db:
+    cmds:
+      - docker compose down db --volumes
+      - task: db
+

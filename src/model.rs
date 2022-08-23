@@ -5,14 +5,18 @@ use sqlx::PgPool;
 
 use uuid::Uuid;
 
-use crate::db;
+use crate::db::{self, transactions::retreive_token_db};
+
+#[derive(Clone)]
 pub struct Model {
     pub pool: PgPool,
 }
 
 impl Model {
-    pub async fn register_user(self, name: String, nuid: String) -> Result<String, Error> {
+    pub async fn register_user(self, name: String, nuid: String) -> Result<Uuid, Error> {
         let token = Uuid::new_v4();
+        let challenge_str = generate_challenge_string();
+        let soln = find_kmers(&challenge_str, 3);
 
         match db::transactions::register_user_db(
             self.pool,
@@ -20,17 +24,20 @@ impl Model {
             name,
             nuid,
             generate_challenge_string(),
+            soln,
         )
         .await
         {
-            Ok(_) => todo!(),
-            Err(_) => todo!(),
+            Ok(_) => Ok(token),
+            Err(e) => todo!("Figure out how to handle the db error properly"),
         }
-        Ok("".to_owned())
     }
 
-    pub fn retreive_token(nuid: String) -> Result<String, Error> {
-        Ok("".to_owned())
+    pub async fn retreive_token(self, nuid: String) -> Result<Uuid, Error> {
+        match retreive_token_db(self.pool, nuid).await {
+            Ok(token) => Ok(token),
+            Err(_) => todo!("Figure out how to handle the retreive token err properly - this one actually matters"),
+        }
     }
 }
 
