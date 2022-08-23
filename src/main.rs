@@ -6,7 +6,7 @@ use sqlx::PgPool;
 
 use std::error::Error;
 
-use crate::endpoints::server::{self, Handler};
+use crate::endpoints::server::Server;
 use crate::model::Model;
 use std::env;
 
@@ -28,12 +28,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = PgPool::connect(&conn_string).await?;
 
-    let model = Model { pool };
-    let handler = Handler { model: &model };
+    let model = Model { pool: &pool };
+    let server = Server { model: &model };
 
     info!("Stating submission server");
-    warp::serve(server::end(handler))
-        .run(([0, 0, 0, 0], 8000))
-        .await;
+    warp::serve(server.end()).run(([0, 0, 0, 0], 8000)).await;
     Ok(())
 }

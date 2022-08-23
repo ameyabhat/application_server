@@ -7,7 +7,7 @@ use uuid::Uuid;
 use sqlx::{query, PgPool};
 
 pub async fn register_user_db(
-    pool: PgPool,
+    pool: &PgPool,
     token: Uuid,
     name: String,
     nuid: String,
@@ -49,9 +49,9 @@ pub async fn register_user_db(
     Ok(())
 }
 
-pub async fn retreive_token_db(pool: PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
+pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
     let record = query!(r#"SELECT token FROM applicants WHERE nuid=$1"#, nuid)
-        .fetch_one(&pool)
+        .fetch_one(pool)
         .await?;
 
     Ok(record.token)

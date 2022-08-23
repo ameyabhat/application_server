@@ -6,8 +6,8 @@ use super::routes::{forgot_token_route, register_route};
 use crate::model::Model;
 
 #[derive(Clone)]
-pub struct Handler<'a> {
-    model: &'a Model,
+pub struct Server<'a> {
+    model: &'a Model<'a>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -27,20 +27,15 @@ pub struct HandleForgotTokenResponse {
 
 type WarpResponse = Result<impl Reply, Rejection>;
 
-pub fn end(handler: Handler) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    let register_user_wrapper = {
-        let handler2 = handler.clone();
-        |req| handler.handle_register(req)
-    };
-
-    register_route().and_then(register_user_wrapper)
-    //.or(forgot_token_route().and_then(|nuid| self.handle_forgot_token(nuid)))
-}
-
-impl<'a> Handler<'a> {
-    pub fn end(&'a self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let handle_register_wrapper = move |req: RegisterRequest| self.handle_register(req);
-        register_route().and_then(handle_register_wrapper)
+impl<'b> Server<'b> {
+    pub fn end<'a>(&'a self) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone + 'a {
+        //let handle_register_wrapper = move |req: RegisterRequest| self.handle_register(req);
+        register_route().and_then(Server::h)
+    }
+    pub async fn h(request: RegisterRequest) -> WarpResponse {
+        Ok(reply::json(&RegisterResponse {
+            token: "tok".to_owned(),
+        }))
     }
     pub async fn handle_register(&self, request: RegisterRequest) -> WarpResponse {
         info!(
@@ -58,7 +53,7 @@ impl<'a> Handler<'a> {
     pub async fn handle_forgot_token(&self, nuid: String) -> Result<impl Reply, Rejection> {
         let token = match self.model.retreive_token(nuid).await {
             Ok(token) => token.to_string(),
-            Err(e) => todo!("send back no user found failure"),
+            Err(_e) => todo!("send back no user found failure"),
         };
 
         Ok(reply::json(&HandleForgotTokenResponse { token }))

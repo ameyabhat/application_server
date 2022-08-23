@@ -8,12 +8,12 @@ use uuid::Uuid;
 use crate::db::{self, transactions::retreive_token_db};
 
 #[derive(Clone)]
-pub struct Model {
-    pub pool: PgPool,
+pub struct Model<'a> {
+    pub pool: &'a PgPool,
 }
 
-impl Model {
-    pub async fn register_user(self, name: String, nuid: String) -> Result<Uuid, Error> {
+impl<'a> Model<'a> {
+    pub async fn register_user(&self, name: String, nuid: String) -> Result<Uuid, Error> {
         let token = Uuid::new_v4();
         let challenge_str = generate_challenge_string();
         let soln = find_kmers(&challenge_str, 3);
@@ -33,7 +33,7 @@ impl Model {
         }
     }
 
-    pub async fn retreive_token(self, nuid: String) -> Result<Uuid, Error> {
+    pub async fn retreive_token(&self, nuid: String) -> Result<Uuid, Error> {
         match retreive_token_db(self.pool, nuid).await {
             Ok(token) => Ok(token),
             Err(_) => todo!("Figure out how to handle the retreive token err properly - this one actually matters"),
