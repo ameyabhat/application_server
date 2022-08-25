@@ -7,37 +7,32 @@ use uuid::Uuid;
 
 use crate::db::{self, transactions::retreive_token_db};
 
-#[derive(Clone)]
-pub struct Model<'a> {
-    pub pool: &'a PgPool,
+pub async fn register_user(pool: PgPool, name: String, nuid: String) -> Result<Uuid, Error> {
+    let token = Uuid::new_v4();
+    let challenge_str = generate_challenge_string();
+    let soln = find_kmers(&challenge_str, 3);
+
+    match db::transactions::register_user_db(
+        &pool,
+        token,
+        name,
+        nuid,
+        generate_challenge_string(),
+        soln,
+    )
+    .await
+    {
+        Ok(_) => Ok(token),
+        Err(_e) => todo!("Figure out how to handle the db error properly"),
+    }
 }
 
-impl<'a> Model<'a> {
-    pub async fn register_user(&self, name: String, nuid: String) -> Result<Uuid, Error> {
-        let token = Uuid::new_v4();
-        let challenge_str = generate_challenge_string();
-        let soln = find_kmers(&challenge_str, 3);
-
-        match db::transactions::register_user_db(
-            self.pool,
-            token,
-            name,
-            nuid,
-            generate_challenge_string(),
-            soln,
-        )
-        .await
-        {
-            Ok(_) => Ok(token),
-            Err(e) => todo!("Figure out how to handle the db error properly"),
-        }
-    }
-
-    pub async fn retreive_token(&self, nuid: String) -> Result<Uuid, Error> {
-        match retreive_token_db(self.pool, nuid).await {
-            Ok(token) => Ok(token),
-            Err(_) => todo!("Figure out how to handle the retreive token err properly - this one actually matters"),
-        }
+pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, Error> {
+    match retreive_token_db(&pool, nuid).await {
+        Ok(token) => Ok(token),
+        Err(_) => todo!(
+            "Figure out how to handle the retreive token err properly - this one actually matters"
+        ),
     }
 }
 
