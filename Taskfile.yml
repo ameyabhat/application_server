@@ -14,3 +14,6 @@ tasks:
       - docker compose down db --volumes
       - task: db
 
+  connect:
+    - psql postgres://postgres:postgres@localhost:5432/postgres
+

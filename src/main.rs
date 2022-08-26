@@ -16,18 +16,28 @@ mod model;
 async fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();
 
-    let conn_string = match env::var("DAT&ABASE_URL") {
+    let conn_string = match env::var("DATABASE_URL") {
         Ok(db_url) => db_url,
         Err(_) => format!(
             "postgres://{}:{}@127.0.0.1:{}/{}",
-            "postgres", "postgres", 5432, "db"
+            "postgres", "postgres", 5432, "postgres"
         ),
     };
 
-    let pool = PgPool::connect(&conn_string).await.ok();
+    let pool = PgPool::connect(&conn_string).await;
 
-    info!("Stating submission server");
-    warp::serve(endpoints::end(pool))
+    let o = match pool {
+        Ok(p) => {
+            info!("Connnected to db!");
+            Some(p)
+        }
+        Err(e) => {
+            panic!("Error connecting to db: {}", e);
+        }
+    };
+
+    info!("Starting submission server");
+    warp::serve(endpoints::end(o))
         .run(([0, 0, 0, 0], 8000))
         .await;
     Ok(())

@@ -1,6 +1,7 @@
 use super::messages::{HandleForgotTokenResponse, RegisterRequest, RegisterResponse};
-use super::routes::{forgot_token_route, register_route, with_db};
+use super::routes::{forgot_token_route, health, register_route, with_db};
 use crate::model::{register_user, retreive_token};
+use serde_json::json;
 use sqlx::PgPool;
 use warp::{reply, Filter, Rejection, Reply};
 
@@ -12,9 +13,16 @@ pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Rejec
         .and_then(handle_register)
         .or(forgot_token_route()
             .and(with_db(o))
-            .and_then(handle_forgot_token))
-    //register_route().and_then(reg)
+            .and_then(handle_forgot_token)
+            .or(health().and_then(health_check)))
 }
+
+pub async fn health_check() -> WarpResponse {
+    Ok(reply::json(&json!({
+        "healthy": true
+    })))
+}
+
 pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpResponse {
     info!(
         "registering user {}, with nuid {}",
@@ -23,7 +31,9 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpRespons
 
     let token = match register_user(p, request.name, request.nuid).await {
         Ok(token) => token.to_string(),
-        Err(_err) => todo!("Send back failure"),
+        Err(err) => {
+            panic!("failed to register user: {}", err)
+        }
     };
     Ok(reply::json(&RegisterResponse { token }))
 }

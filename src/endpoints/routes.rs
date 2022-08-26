@@ -18,6 +18,12 @@ pub fn forgot_token_route() -> BoxedFilter<(String,)> {
     warp::get().and(ftr).boxed()
 }
 
+pub fn health() -> BoxedFilter<()> {
+    let health = warp::path!("health");
+    warp::get().and(health).boxed()
+}
+
+// All this does is include the db pool in scope, it shouldn't change the actual route
 pub fn with_db(o: Option<PgPool>) -> impl Filter<Extract = (PgPool,), Error = Rejection> + Clone {
     warp::any().and_then(move || {
         // This is is fine b/c a PgPool is just a reference counted

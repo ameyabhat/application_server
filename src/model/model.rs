@@ -23,7 +23,7 @@ pub async fn register_user(pool: PgPool, name: String, nuid: String) -> Result<U
     .await
     {
         Ok(_) => Ok(token),
-        Err(_e) => todo!("Figure out how to handle the db error properly"),
+        Err(e) => todo!("Figure out how to handle the db error properly: {}", e),
     }
 }
 
