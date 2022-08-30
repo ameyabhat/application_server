@@ -11,7 +11,7 @@ services:
           "-d",
           "postgres",
           "-U",
-          "root"
+          "generate_admin"
         ]
       timeout: 45s
       interval: 10s
@@ -28,13 +28,13 @@ services:
     container_name: generate-tech-app
     build:
       context: ./
-      target: production
     image: generate-tech-app
     depends_on:
       - db
     ports:
       - 8000:8000
     environment:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
       NODE_ENV: production
       DB_HOST: db
       DB_PORT: 5432
