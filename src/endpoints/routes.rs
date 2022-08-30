@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use sqlx::PgPool;
+use uuid::Uuid;
 use warp::filters::BoxedFilter;
 use warp::{path, Filter, Rejection};
 
@@ -21,6 +24,15 @@ pub fn forgot_token_route() -> BoxedFilter<(String,)> {
 pub fn health() -> BoxedFilter<()> {
     let health = warp::path!("health");
     warp::get().and(health).boxed()
+}
+
+pub fn submit() -> BoxedFilter<(Uuid, HashMap<String, u64>)> {
+    let route = warp::path!("submit" / Uuid);
+    warp::post()
+        .and(route)
+        .and(path::end())
+        .and(warp::body::json())
+        .boxed()
 }
 
 // All this does is include the db pool in scope, it shouldn't change the actual route

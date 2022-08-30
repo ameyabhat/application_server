@@ -17,8 +17,8 @@ CREATE TABLE solutions (
 CREATE TABLE submissions (
     submission_id serial PRIMARY KEY,
     solution_id integer NOT NULL REFERENCES solutions (solution_id),
+    token uuid NOT NULL REFERENCES applicants (token),
     ok boolean NOT NULL,
-    submission jsonb NOT NULL,
-    submission_time timestamp NOT NULL
+    submission_time timestamp with time zone NOT NULL
 );
 

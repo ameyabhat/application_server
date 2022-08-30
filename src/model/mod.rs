@@ -1,2 +1,3 @@
 pub mod model;
-pub use model::{register_user, retreive_token};
+pub mod types;
+pub use model::{check_solution, register_user, retreive_token};

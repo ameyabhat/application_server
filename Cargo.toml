@@ -16,4 +16,5 @@ sqlx = { version = "0.6", features = [ "runtime-tokio-rustls", "json", "postgres
 uuid = { version = "1.1.2", features = ["v4"] }
 chrono = "0.4.22"
 serde_json = "1.0"
+thiserror = "1.0.32"
 rand = "0.8.5"

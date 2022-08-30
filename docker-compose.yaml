@@ -28,7 +28,6 @@ services:
     container_name: generate-tech-app
     build:
       context: ./
-      target: production
     image: generate-tech-app
     depends_on:
       - db

@@ -5,9 +5,19 @@ use sqlx::PgPool;
 
 use uuid::Uuid;
 
-use crate::db::{self, transactions::retreive_token_db};
+use crate::db::{self};
 
-pub async fn register_user(pool: PgPool, name: String, nuid: String) -> Result<Uuid, Error> {
+#[derive(thiserror::Error, Debug)]
+pub enum DatabaseError {
+    #[error("A registration with this NUID exists")]
+    DuplicateUser,
+}
+
+pub async fn register_user(
+    pool: PgPool,
+    name: String,
+    nuid: String,
+) -> Result<(Uuid, String), DatabaseError> {
     let token = Uuid::new_v4();
     let challenge_str = generate_challenge_string();
     let soln = find_kmers(&challenge_str, 3);
@@ -22,13 +32,13 @@ pub async fn register_user(pool: PgPool, name: String, nuid: String) -> Result<U
     )
     .await
     {
-        Ok(_) => Ok(token),
-        Err(e) => todo!("Figure out how to handle the db error properly: {}", e),
+        Ok(_) => Ok((token, challenge_str)),
+        Err(_) => Err(DatabaseError::DuplicateUser),
     }
 }
 
 pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, Error> {
-    match retreive_token_db(&pool, nuid).await {
+    match db::transactions::retreive_token_db(&pool, nuid).await {
         Ok(token) => Ok(token),
         Err(_) => todo!(
             "Figure out how to handle the retreive token err properly - this one actually matters"
@@ -36,17 +46,37 @@ pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, Error> {
     }
 }
 
-pub fn generate_challenge_string() -> String {
+pub async fn check_solution(
+    pool: PgPool,
+    token: Uuid,
+    given_soln: &HashMap<String, u64>,
+) -> Result<(bool, HashMap<String, u64>), Error> {
+    // Check if the solution is correct - write the row to the solutions table
+    match db::transactions::retreive_soln(&pool, token).await {
+        Ok((soln, solution_id)) => {
+            let ok = soln == *given_soln;
+            if let Err(e) = db::transactions::write_submission(pool, solution_id, token, ok).await {
+                panic!("We failed to write the submission properly: {}", e)
+            }
+            Ok((ok, soln))
+        }
+        Err(_) => {
+            panic!("We failed to retreive the soln - it's possible this user never registered")
+        }
+    }
+}
+
+fn generate_challenge_string() -> String {
     Alphanumeric.sample_string(&mut rand::thread_rng(), 100)
 }
 
 // Return the kmers as a map from strings of length k to
-pub fn find_kmers<'a>(challenge_str: &String, k: usize) -> HashMap<&str, u64> {
+fn find_kmers(challenge_str: &String, k: usize) -> HashMap<String, u64> {
     let mut start_ind = 0;
-    let mut soln: HashMap<&str, u64> = HashMap::new();
+    let mut soln: HashMap<String, u64> = HashMap::new();
     while start_ind + k <= challenge_str.len() {
         let slice = &challenge_str[start_ind..start_ind + k];
-        soln.entry(slice)
+        soln.entry(slice.to_string())
             .and_modify(|kmer_count| *kmer_count += 1)
             .or_insert(1);
         start_ind += 1;
@@ -57,7 +87,6 @@ pub fn find_kmers<'a>(challenge_str: &String, k: usize) -> HashMap<&str, u64> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::io::Error;
 
     use super::find_kmers;
@@ -89,11 +118,23 @@ mod tests {
 
     #[test]
     fn test_long_challenge_string() -> Result<(), Error> {
+        #[macro_export]
+        macro_rules! fuck_your_strings {
+            ($(($key:expr, $value: expr),)+) => {
+                {
+                    let mut map = std::collections::HashMap::new();
+                    $(
+                        map.insert(String::from($key), $value);
+                    )*
+                    map
+                }
+            };
+        }
+
         let long_challenge_string = &String::from("aabbceedeaab");
 
         let soln = find_kmers(long_challenge_string, 3);
-
-        let correct_soln = HashMap::from([
+        let correct_soln = fuck_your_strings!(
             ("aab", 2),
             ("abb", 1),
             ("bbc", 1),
@@ -103,7 +144,7 @@ mod tests {
             ("ede", 1),
             ("dea", 1),
             ("eaa", 1),
-        ]);
+        );
 
         assert_eq!(soln, correct_soln);
         Ok(())

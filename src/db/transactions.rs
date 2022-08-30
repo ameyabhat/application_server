@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use core::panic;
 use serde_json;
 use std::collections::HashMap;
 use std::time::SystemTime;
@@ -12,7 +13,7 @@ pub async fn register_user_db(
     name: String,
     nuid: String,
     challenge_string: String,
-    solution: HashMap<&str, u64>,
+    solution: HashMap<String, u64>,
 ) -> Result<(), sqlx::Error> {
     let mut tx = pool.begin().await?;
     // Insert the applicant
@@ -55,4 +56,40 @@ pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx
         .await?;
 
     Ok(record.token)
+}
+
+pub async fn retreive_soln(
+    pool: &PgPool,
+    token: Uuid,
+) -> Result<(HashMap<String, u64>, i32), sqlx::Error> {
+    let record = query!(
+        r#"SELECT solution_id, solution FROM solutions WHERE token=$1"#,
+        token
+    )
+    .fetch_one(pool)
+    .await?;
+
+    match serde_json::from_value(record.solution) {
+        Ok(soln) => Ok((soln, record.solution_id)),
+        Err(_e) => panic!("solution didn't deserialize properly"),
+    }
+}
+
+pub async fn write_submission(
+    pool: PgPool,
+    solution_id: i32,
+    token: Uuid,
+    ok: bool,
+) -> Result<(), sqlx::Error> {
+    let submission_time: DateTime<Utc> = SystemTime::now().into();
+
+    query!(
+        r#"INSERT INTO submissions (solution_id, token, ok, submission_time) VALUES ($1, $2, $3, $4);"#,
+        solution_id,
+        token,
+        ok,
+        submission_time,
+    ).execute(&pool).await?;
+
+    Ok(())
 }
