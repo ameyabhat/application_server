@@ -1,4 +1,3 @@
-use rand::distributions::{Alphanumeric, DistString};
 use std::{collections::HashMap, io::Error};
 
 use sqlx::PgPool;
@@ -67,7 +66,8 @@ pub async fn check_solution(
 }
 
 fn generate_challenge_string() -> String {
-    Alphanumeric.sample_string(&mut rand::thread_rng(), 100)
+    let charset = "ACTG";
+    random_string::generate(100, charset)
 }
 
 // Return the kmers as a map from strings of length k to
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_rand_str() -> Result<(), Error> {
-        println!("{}", generate_challenge_string());
+        assert!(generate_challenge_string().len() == 100);
         Ok(())
     }
 
