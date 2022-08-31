@@ -35,6 +35,12 @@ pub fn submit() -> BoxedFilter<(Uuid, HashMap<String, u64>)> {
         .boxed()
 }
 
+pub fn get_challenge_string_route() -> BoxedFilter<(Uuid,)> {
+    let route = warp::path!("challenge" / Uuid);
+
+    warp::get().and(route).and(path::end()).boxed()
+}
+
 // All this does is include the db pool in scope, it shouldn't change the actual route
 pub fn with_db(o: Option<PgPool>) -> impl Filter<Extract = (PgPool,), Error = Rejection> + Clone {
     warp::any().and_then(move || {

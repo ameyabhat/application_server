@@ -45,6 +45,13 @@ pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, Error> {
     }
 }
 
+pub async fn retreive_challenge(pool: &PgPool, token: Uuid) -> Result<String, Error> {
+    match db::transactions::retreive_challenge_db(pool, token).await {
+        Ok(challenge) => Ok(challenge),
+        Err(_) => todo!(),
+    }
+}
+
 pub async fn check_solution(
     pool: PgPool,
     token: Uuid,
@@ -52,9 +59,9 @@ pub async fn check_solution(
 ) -> Result<(bool, HashMap<String, u64>), Error> {
     // Check if the solution is correct - write the row to the solutions table
     match db::transactions::retreive_soln(&pool, token).await {
-        Ok((soln, solution_id)) => {
+        Ok((soln, nuid)) => {
             let ok = soln == *given_soln;
-            if let Err(e) = db::transactions::write_submission(pool, solution_id, token, ok).await {
+            if let Err(e) = db::transactions::write_submission(pool, nuid, ok).await {
                 panic!("We failed to write the submission properly: {}", e)
             }
             Ok((ok, soln))

@@ -1,12 +1,15 @@
+use core::panic;
 use std::collections::HashMap;
 use std::convert::Infallible;
 
 use super::messages::{
-    ErrorResponse, HandleForgotTokenResponse, RegisterRequest, RegisterResponse,
+    ErrorResponse, GetChallengeString, HandleForgotTokenResponse, RegisterRequest, RegisterResponse,
 };
-use super::routes::{forgot_token_route, health, register_route, submit, with_db};
+use super::routes::{
+    forgot_token_route, get_challenge_string_route, health, register_route, submit, with_db,
+};
 use crate::endpoints::ApiError;
-use crate::model::{check_solution, register_user, retreive_token};
+use crate::model::{check_solution, register_user, retreive_challenge, retreive_token};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -49,6 +52,11 @@ pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Infal
     handle_with_db!(register_route, o, handle_register)
         .or(handle_with_db!(forgot_token_route, o, handle_forgot_token))
         .or(handle_with_db!(submit, o, handle_submit))
+        .or(handle_with_db!(
+            get_challenge_string_route,
+            o,
+            handle_get_challenge
+        ))
         .or(health().and_then(health_check))
         .recover(handle_rejection)
 }
@@ -85,7 +93,7 @@ pub async fn handle_submit(token: Uuid, soln: HashMap<String, u64>, p: PgPool) -
                 }))
             }
         }
-        Err(_) => panic!("uh i fucked up"),
+        Err(_) => panic!("unclear on how we get to this - either we failed to deserialize the soln, or the db conn fails. Regardless, log it and send back a 500"),
     }
 }
 
@@ -102,6 +110,13 @@ pub async fn health_check() -> WarpResponse {
     Ok(reply::json(&json!({
         "healthy": true
     })))
+}
+
+pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> WarpResponse {
+    match retreive_challenge(&pool, token).await {
+        Ok(challenge_string) => Ok(reply::json(&GetChallengeString { challenge_string })),
+        Err(_) => todo!(),
+    }
 }
 
 async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
@@ -134,7 +149,15 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     } else {
         code = StatusCode::INTERNAL_SERVER_ERROR;
         msg = api_err!("UNHANDLED_REJECTION");
+        panic!("{:?}", err)
     }
 
     Ok(reply::with_status(reply::json(&msg), code))
+}
+
+mod tests {
+    // We'll write API tests here eventually - i wonder if I can write service tests
+    // using docker compose. Should probably figure out how to do that for generate
+
+    // You can just mock the DB
 }
