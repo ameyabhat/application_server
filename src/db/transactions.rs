@@ -1,11 +1,11 @@
-use chrono::{DateTime, Utc};
+use chrono::{Date, DateTime, Utc};
 use core::panic;
 use serde_json;
-use std::collections::HashMap;
 use std::time::SystemTime;
+use std::{collections::HashMap, fmt::Error};
 use uuid::Uuid;
 
-use sqlx::{query, PgPool};
+use sqlx::{query, PgPool, Postgres, Row};
 
 pub async fn register_user_db(
     pool: &PgPool,
@@ -37,7 +37,37 @@ pub async fn register_user_db(
 
     Ok(())
 }
+/*
 
+pub async fn get_applicants_db(
+    pool: &PgPool,
+    nuids: Vec<String>,
+) -> Result<Vec<(String, DateTime<Utc>, DateTime<Utc>, bool)>, sqlx::Error> {
+    // This is a hack, sqlx doesn't support vector replacement into an IN statement
+    let records = query!(
+        r#"SELECT applicants.nuid, registration_time, submission_time, ok
+        FROM submissions JOIN applicants USING(nuid)
+        WHERE nuid=ANY($1) and ok=true"#,
+        &nuids[..]
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let results: Vec<(String, DateTime<Utc>, DateTime<Utc>, bool)> = Vec::new();
+
+    Ok(records
+        .iter()
+        .map(|record| {
+            (
+                record.nuid.clone(),
+                record.registration_time,
+                record.submission_time,
+                record.ok,
+            )
+        })
+        .collect())
+}
+*/
 pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
     let record = query!(r#"SELECT token FROM applicants WHERE nuid=$1"#, nuid)
         .fetch_one(pool)

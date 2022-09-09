@@ -2,17 +2,20 @@ use core::panic;
 use std::collections::HashMap;
 use std::convert::Infallible;
 
+use super::errors::ModelError;
 use super::messages::{
     ErrorResponse, GetChallengeString, HandleForgotTokenResponse, RegisterRequest, RegisterResponse,
 };
 use super::routes::{
-    forgot_token_route, get_challenge_string_route, health, register_route, submit, with_db,
+    forgot_token_route, get_applicant_route, get_challenge_string_route, health, register_route,
+    submit, with_db,
 };
 use crate::endpoints::ApiError;
-use crate::model::{check_solution, register_user, retreive_challenge, retreive_token};
+use crate::model::{self, check_solution, register_user, retreive_challenge, retreive_token};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
+use warp::body::BodyDeserializeError;
 use warp::hyper::StatusCode;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
@@ -58,8 +61,22 @@ pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Infal
             handle_get_challenge
         ))
         .or(health().and_then(health_check))
+        /*         .or(handle_with_db!(
+            get_applicant_route,
+            o,
+            handle_get_applicant
+        )) */
         .recover(handle_rejection)
 }
+/*
+pub async fn handle_get_applicant(nuid: String, p: PgPool) -> WarpResponse {
+    // look up the applicant
+    let applicants = match get_applicants(vec![nuid]).await {
+        Ok(_) => todo!(),
+        Err(_) => todo!(),
+    }
+}
+*/
 
 pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpResponse {
     info!(
@@ -74,7 +91,7 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpRespons
         })),
         // Actually send back an error here you fucking muppet
         // Should be a 409 conflict error if the error doesnt exist,
-        Err(_) => Err(reject::custom(ApiError::DuplicateUser)),
+        Err(_) => Err(reject::custom(ModelError::DuplicateUser)),
     }
 }
 
@@ -87,7 +104,7 @@ pub async fn handle_submit(token: Uuid, soln: HashMap<String, u64>, p: PgPool) -
             if is_correct {
                 Ok(reply::json(&"Correct! Nice work".to_string()))
             } else {
-                Err(reject::custom(ApiError::IncorrectSolution {
+                Err(reject::custom(ModelError::IncorrectSolution {
                     expected_solution: expected_soln,
                     given_solution: soln.clone(),
                 }))
@@ -123,16 +140,22 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     let code;
     let msg: ErrorResponse;
 
-    if err.is_not_found() {
+    // This is super jank - we're mapping a 405 to a 404
+    // This issue explains why: https://github.com/seanmonstar/warp/issues/77
+    // I'll fix this eventually, I need to fix the library
+    // fucking warp man
+    if err.find::<warp::reject::MethodNotAllowed>().is_some() {
         code = StatusCode::NOT_FOUND;
-        msg = api_err!("The path you're trying to hit doesn't exist");
-    } else if let Some(wrapped_err) = err.find::<ApiError>() {
+        msg = api_err!(
+            "The path you're trying to hit doesn't exist - check your endpoints and your request method"
+        );
+    } else if let Some(wrapped_err) = err.find::<ModelError>() {
         match wrapped_err {
-            ApiError::DuplicateUser => {
+            ModelError::DuplicateUser => {
                 msg = api_err!("This NUID has already been used to register");
                 code = StatusCode::CONFLICT;
             }
-            ApiError::IncorrectSolution {
+            ModelError::IncorrectSolution {
                 expected_solution,
                 given_solution,
             } => {
@@ -146,10 +169,13 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
                 code = StatusCode::BAD_REQUEST;
             }
         }
+    } else if err.find::<BodyDeserializeError>().is_some() {
+        code = StatusCode::BAD_REQUEST;
+        msg = api_err!("Bad request - check your request body")
     } else {
         code = StatusCode::INTERNAL_SERVER_ERROR;
         msg = api_err!("UNHANDLED_REJECTION");
-        panic!("{:?}", err)
+        warn!("{:?}", err)
     }
 
     Ok(reply::with_status(reply::json(&msg), code))
@@ -159,5 +185,5 @@ mod tests {
     // We'll write API tests here eventually - i wonder if I can write service tests
     // using docker compose. Should probably figure out how to do that for generate
 
-    // You can just mock the DB
+    // You can just mock the DB you muppet
 }
