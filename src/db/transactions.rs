@@ -1,11 +1,11 @@
-use chrono::{Date, DateTime, Utc};
+use chrono::{DateTime, Utc};
 use core::panic;
 use serde_json;
+use std::collections::HashMap;
 use std::time::SystemTime;
-use std::{collections::HashMap, fmt::Error};
 use uuid::Uuid;
 
-use sqlx::{query, PgPool, Postgres, Row};
+use sqlx::{query, PgPool};
 
 pub async fn register_user_db(
     pool: &PgPool,
@@ -37,29 +37,27 @@ pub async fn register_user_db(
 
     Ok(())
 }
-/*
 
 pub async fn get_applicants_db(
     pool: &PgPool,
-    nuids: Vec<String>,
-) -> Result<Vec<(String, DateTime<Utc>, DateTime<Utc>, bool)>, sqlx::Error> {
+    nuids: &[String],
+) -> Result<Vec<(String, String, DateTime<Utc>, DateTime<Utc>, bool)>, sqlx::Error> {
     // This is a hack, sqlx doesn't support vector replacement into an IN statement
     let records = query!(
-        r#"SELECT applicants.nuid, registration_time, submission_time, ok
-        FROM submissions JOIN applicants USING(nuid)
-        WHERE nuid=ANY($1) and ok=true"#,
+        r#"SELECT DISTINCT ON (nuid) nuid, applicant_name, ok, submission_time, 
+        registration_time FROM submissions JOIN applicants using(nuid) where 
+        nuid=ANY($1) ORDER BY nuid, submission_time DESC;"#,
         &nuids[..]
     )
     .fetch_all(pool)
     .await?;
-
-    let results: Vec<(String, DateTime<Utc>, DateTime<Utc>, bool)> = Vec::new();
 
     Ok(records
         .iter()
         .map(|record| {
             (
                 record.nuid.clone(),
+                record.applicant_name.clone(),
                 record.registration_time,
                 record.submission_time,
                 record.ok,
@@ -67,7 +65,7 @@ pub async fn get_applicants_db(
         })
         .collect())
 }
-*/
+
 pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
     let record = query!(r#"SELECT token FROM applicants WHERE nuid=$1"#, nuid)
         .fetch_one(pool)
