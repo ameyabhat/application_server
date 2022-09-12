@@ -216,7 +216,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
             } => {
                 code = StatusCode::NOT_FOUND;
                 msg = api_err!(
-                    "Submissions from one or more the applicants requested was not found",
+                    "Submissions from one or more of the applicants requested was not found",
                     ApiError::ApplicantsNotFound {
                         applicants_found: applicants_found.to_vec(),
                         applicants_not_found: applicants_not_found.clone()
