@@ -1,4 +1,3 @@
-#![feature(type_alias_impl_trait)]
 extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
@@ -12,6 +11,7 @@ mod db;
 mod endpoints;
 mod model;
 
+// Gonna need to handle TLS certs here when I deploy - lets look at NGINX
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     pretty_env_logger::init();

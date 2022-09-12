@@ -21,8 +21,6 @@ use warp::hyper::StatusCode;
 use warp::reject::MethodNotAllowed;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
-type WarpResponse = Result<impl Reply, Rejection>;
-
 /*
    The expansion should look something like
    handle!(route, handler) => {
@@ -105,7 +103,7 @@ pub async fn handle_get_applicant(nuid: String, p: PgPool) -> Result<impl Reply,
     }
 }
 
-pub async fn handle_get_applicants(nuids: Vec<String>, p: PgPool) -> WarpResponse {
+pub async fn handle_get_applicants(nuids: Vec<String>, p: PgPool) -> Result<impl Reply, Rejection> {
     match get_applicants(p, &nuids).await {
         Ok(applicants) => {
             if applicants.len() == nuids.len() {
@@ -130,7 +128,7 @@ pub async fn handle_get_applicants(nuids: Vec<String>, p: PgPool) -> WarpRespons
     }
 }
 
-pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpResponse {
+pub async fn handle_register(request: RegisterRequest, p: PgPool) -> Result<impl Reply, Rejection> {
     info!(
         "registering user {}, with nuid {}",
         request.name, request.nuid
@@ -146,9 +144,13 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpRespons
     }
 }
 
-//pub async fn get_challenge_string(_token: String) -> WarpResponse {}
+//pub async fn get_challenge_string(_token: String) -> Result<impl Reply, Rejection> {}
 // On error, send back a 400
-pub async fn handle_submit(token: Uuid, soln: HashMap<String, u64>, p: PgPool) -> WarpResponse {
+pub async fn handle_submit(
+    token: Uuid,
+    soln: HashMap<String, u64>,
+    p: PgPool,
+) -> Result<impl Reply, Rejection> {
     // Depending on what check solution does, either return a reply json or a rejection
     match check_solution(p, token, &soln).await {
         Ok((is_correct, expected_soln)) => {
@@ -174,13 +176,13 @@ pub async fn handle_forgot_token(nuid: String, p: PgPool) -> Result<impl Reply, 
     }
 }
 
-pub async fn health_check() -> WarpResponse {
+pub async fn health_check() -> Result<impl Reply, Rejection> {
     Ok(reply::json(&json!({
         "healthy": true
     })))
 }
 
-pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> WarpResponse {
+pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> Result<impl Reply, Rejection> {
     match retreive_challenge(&pool, token).await {
         Ok(challenge_string) => Ok(reply::json(&GetChallengeString { challenge_string })),
         Err(e) => Err(reject::custom(e)),
