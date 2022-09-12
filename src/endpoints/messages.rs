@@ -17,6 +17,11 @@ pub struct RegisterRequest {
 pub struct HandleForgotTokenResponse {
     pub token: String,
 }
+#[derive(Serialize, Deserialize)]
+
+pub struct GetChallengeString {
+    pub challenge_string: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct ErrorResponse<'a> {

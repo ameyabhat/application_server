@@ -15,39 +15,55 @@ pub async fn register_user_db(
     challenge_string: String,
     solution: HashMap<String, u64>,
 ) -> Result<(), sqlx::Error> {
-    let mut tx = pool.begin().await?;
     // Insert the applicant
     let registration_time: DateTime<Utc> = SystemTime::now().into();
-
-    query!(
-        r#"INSERT INTO applicants (nuid, applicant_name, registration_time, token)
-         VALUES ($1, $2, $3, $4);"#,
-        nuid,
-        name,
-        registration_time,
-        token
-    )
-    .execute(&mut tx)
-    .await?;
-
     let ser_solution = match serde_json::to_value(&solution) {
         Ok(val) => val,
         Err(_) => todo!("Figure out how to handle the serde error properly"),
     };
 
     query!(
-        r#"INSERT INTO solutions (challenge_string, solution, token) VALUES
-       ($1, $2, $3);"#,
-        challenge_string,
-        ser_solution,
+        r#"INSERT INTO applicants (nuid, applicant_name, registration_time, token, challenge_string, solution)
+         VALUES ($1, $2, $3, $4, $5, $6);"#,
+        nuid,
+        name,
+        registration_time,
         token,
+        challenge_string,
+        ser_solution
     )
-    .execute(&mut tx)
+    .execute(pool)
     .await?;
 
-    tx.commit().await?;
-
     Ok(())
+}
+
+pub async fn get_applicants_db(
+    pool: &PgPool,
+    nuids: &[String],
+) -> Result<Vec<(String, String, DateTime<Utc>, DateTime<Utc>, bool)>, sqlx::Error> {
+    // This is a hack, sqlx doesn't support vector replacement into an IN statement
+    let records = query!(
+        r#"SELECT DISTINCT ON (nuid) nuid, applicant_name, ok, submission_time, 
+        registration_time FROM submissions JOIN applicants using(nuid) where 
+        nuid=ANY($1) ORDER BY nuid, submission_time DESC;"#,
+        &nuids[..]
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(records
+        .iter()
+        .map(|record| {
+            (
+                record.nuid.clone(),
+                record.applicant_name.clone(),
+                record.registration_time,
+                record.submission_time,
+                record.ok,
+            )
+        })
+        .collect())
 }
 
 pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
@@ -58,38 +74,45 @@ pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx
     Ok(record.token)
 }
 
+pub async fn retreive_challenge_db(pool: &PgPool, token: Uuid) -> Result<String, sqlx::Error> {
+    let record = query!(
+        r#"select challenge_string from applicants where token=$1"#,
+        token
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(record.challenge_string)
+}
+
 pub async fn retreive_soln(
     pool: &PgPool,
     token: Uuid,
-) -> Result<(HashMap<String, u64>, i32), sqlx::Error> {
+) -> Result<(HashMap<String, u64>, String), sqlx::Error> {
     let record = query!(
-        r#"SELECT solution_id, solution FROM solutions WHERE token=$1"#,
+        r#"SELECT nuid, solution FROM applicants WHERE token=$1"#,
         token
     )
     .fetch_one(pool)
     .await?;
 
     match serde_json::from_value(record.solution) {
-        Ok(soln) => Ok((soln, record.solution_id)),
+        Ok(soln) => Ok((soln, record.nuid)),
         Err(_e) => panic!("solution didn't deserialize properly"),
     }
 }
 
-pub async fn write_submission(
-    pool: PgPool,
-    solution_id: i32,
-    token: Uuid,
-    ok: bool,
-) -> Result<(), sqlx::Error> {
+pub async fn write_submission(pool: PgPool, nuid: String, ok: bool) -> Result<(), sqlx::Error> {
     let submission_time: DateTime<Utc> = SystemTime::now().into();
 
     query!(
-        r#"INSERT INTO submissions (solution_id, token, ok, submission_time) VALUES ($1, $2, $3, $4);"#,
-        solution_id,
-        token,
+        r#"INSERT INTO submissions (nuid, ok, submission_time) VALUES ($1, $2, $3);"#,
+        nuid,
         ok,
         submission_time,
-    ).execute(&pool).await?;
+    )
+    .execute(&pool)
+    .await?;
 
     Ok(())
 }
