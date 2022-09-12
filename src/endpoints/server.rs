@@ -82,18 +82,17 @@ pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Infal
 // should switch away from nightly - it'll make deployment more stable as well
 pub async fn handle_get_applicant(nuid: String, p: PgPool) -> Result<impl Reply, Rejection> {
     // look up the applicant
-    match get_applicants(p, &[nuid]).await {
+    match get_applicants(p, &[nuid.clone()]).await {
         Ok(applicant) => {
             let code;
             if applicant.len() == 1 {
                 code = StatusCode::OK;
                 Ok(reply::with_status(reply::json(&applicant[0]), code))
             } else if applicant.is_empty() {
-                code = StatusCode::NOT_FOUND;
-                Ok(reply::with_status(
-                    reply::json(&"Could not find submission from applicant"),
-                    code,
-                ))
+                Err(reject::custom(ModelError::ApplicantsNotFound {
+                    applicants_found: vec![],
+                    applicants_not_found: vec![nuid],
+                }))
             } else {
                 let code = StatusCode::INTERNAL_SERVER_ERROR;
                 let msg = api_err!("Fetched the wrong number of applicants somehow ¯\\_(ツ)_/¯  ");
@@ -102,7 +101,7 @@ pub async fn handle_get_applicant(nuid: String, p: PgPool) -> Result<impl Reply,
         }
         // This will just bubble down to a 500 which seems super reasonable
         // Assuming that this is a sql error - no other reason that this would fail
-        Err(_) => Err(reject::custom(ModelError::SqlError)),
+        Err(e) => Err(reject::custom(e)),
     }
 }
 
@@ -142,7 +141,6 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> WarpRespons
             token: token.to_string(),
             challenge_string,
         })),
-        // Actually send back an error here you fucking muppet
         // Should be a 409 conflict error if the error doesnt exist,
         Err(e) => Err(reject::custom(e)),
     }
