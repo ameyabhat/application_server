@@ -1,22 +1,44 @@
-use std::{collections::HashMap, io::Error};
+use std::collections::HashMap;
 
 use sqlx::PgPool;
 
 use uuid::Uuid;
 
-use crate::db::{self};
+use crate::{
+    db::{self},
+    endpoints::errors::ModelError,
+};
 
-#[derive(thiserror::Error, Debug)]
-pub enum DatabaseError {
-    #[error("A registration with this NUID exists")]
-    DuplicateUser,
+use super::types::Applicant;
+
+pub async fn get_applicants(
+    pool: PgPool,
+    applicants: &[String],
+) -> Result<Vec<Applicant>, ModelError> {
+    match db::transactions::get_applicants_db(&pool, applicants).await {
+        Ok(vec) => Ok(vec
+            .iter()
+            .map(|(nuid, name, reg_time, sub_time, ok)| {
+                let time_to_completion = match sub_time.signed_duration_since(*reg_time).to_std() {
+                    Ok(d) => d,
+                    Err(_) => std::time::Duration::ZERO,
+                };
+                Applicant {
+                    nuid: nuid.clone(),
+                    name: name.clone(),
+                    time_to_completion,
+                    ok: *ok,
+                }
+            })
+            .collect()),
+        Err(_) => Err(ModelError::SqlError),
+    }
 }
-
 pub async fn register_user(
     pool: PgPool,
     name: String,
     nuid: String,
-) -> Result<(Uuid, String), DatabaseError> {
+) -> Result<(Uuid, String), ModelError> {
     let token = Uuid::new_v4();
     let challenge_str = generate_challenge_string();
     let soln = find_kmers(&challenge_str, 3);
@@ -31,24 +53,24 @@ pub async fn register_user(
     )
     .await
     {
-        Ok(_) => Ok((token, challenge_str)),
-        Err(_) => Err(DatabaseError::DuplicateUser),
+        Ok(()) => Ok((token, challenge_str)),
+        // there's a bunch of different ways that this can fail, I should probably
+        // handle the error
+        Err(_) => Err(ModelError::DuplicateUser),
     }
 }
 
-pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, Error> {
+pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, ModelError> {
     match db::transactions::retreive_token_db(&pool, nuid).await {
         Ok(token) => Ok(token),
-        Err(_) => todo!(
-            "Figure out how to handle the retreive token err properly - this one actually matters"
-        ),
+        Err(_) => Err(ModelError::NoUserFound),
     }
 }
 
-pub async fn retreive_challenge(pool: &PgPool, token: Uuid) -> Result<String, Error> {
+pub async fn retreive_challenge(pool: &PgPool, token: Uuid) -> Result<String, ModelError> {
     match db::transactions::retreive_challenge_db(pool, token).await {
         Ok(challenge) => Ok(challenge),
-        Err(_) => todo!(),
+        Err(_) => Err(ModelError::NoUserFound),
     }
 }
 
@@ -56,7 +78,7 @@ pub async fn check_solution(
     pool: PgPool,
     token: Uuid,
     given_soln: &HashMap<String, u64>,
-) -> Result<(bool, HashMap<String, u64>), Error> {
+) -> Result<(bool, HashMap<String, u64>), ModelError> {
     // Check if the solution is correct - write the row to the solutions table
     match db::transactions::retreive_soln(&pool, token).await {
         Ok((soln, nuid)) => {
@@ -66,9 +88,7 @@ pub async fn check_solution(
             }
             Ok((ok, soln))
         }
-        Err(_) => {
-            panic!("We failed to retreive the soln - it's possible this user never registered")
-        }
+        Err(_) => Err(ModelError::NoUserFound),
     }
 }
 
