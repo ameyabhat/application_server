@@ -60,7 +60,7 @@ pub async fn register_user(
     }
 }
 
-pub async fn retreive_token(pool: PgPool, nuid: String) -> Result<Uuid, ModelError> {
+pub async fn retreive_token(pool: PgPool, nuid: &String) -> Result<Uuid, ModelError> {
     match db::transactions::retreive_token_db(&pool, nuid).await {
         Ok(token) => Ok(token),
         Err(_) => Err(ModelError::NoUserFound),

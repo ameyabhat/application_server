@@ -66,7 +66,7 @@ pub async fn get_applicants_db(
         .collect())
 }
 
-pub async fn retreive_token_db(pool: &PgPool, nuid: String) -> Result<Uuid, sqlx::Error> {
+pub async fn retreive_token_db(pool: &PgPool, nuid: &String) -> Result<Uuid, sqlx::Error> {
     let record = query!(r#"SELECT token FROM applicants WHERE nuid=$1"#, nuid)
         .fetch_one(pool)
         .await?;

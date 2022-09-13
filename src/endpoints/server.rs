@@ -187,7 +187,7 @@ pub async fn handle_submit(
 
 pub async fn handle_forgot_token(nuid: String, p: PgPool) -> Result<impl Reply, Rejection> {
     info!("Fetching token for user: {}", nuid);
-    match retreive_token(p, nuid.clone()).await {
+    match retreive_token(p, &nuid).await {
         Ok(token) => Ok(reply::json(&HandleForgotTokenResponse {
             token: token.to_string(),
         })),
