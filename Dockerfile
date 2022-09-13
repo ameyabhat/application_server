@@ -1,10 +1,12 @@
-FROM rustlang/rust:nightly
+FROM rust:latest
 
 RUN cd / &&\
 	cargo new app 
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
+ADD .local.env ./.env
+
 RUN cargo build
 RUN rm -r src/
 
