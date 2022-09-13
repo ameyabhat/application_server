@@ -34,13 +34,8 @@ services:
     ports:
       - 8000:8000
     environment:
-      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/postgres
-      NODE_ENV: production
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
+      DATABASE_URL: ${DATABASE_URL}
+      RUST_LOG: trace
     links:
       - db
     volumes:

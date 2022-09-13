@@ -3,6 +3,10 @@
 version: '3'
 
 tasks:
+  up:
+    - docker compose --env-file .local.env up -d
+  down:
+    - docker compose down
   restart:
     cmds:
       - docker compose down --volumes
@@ -13,7 +17,6 @@ tasks:
     cmds:
       - docker compose down db --volumes
       - task: db
-
   connect:
     - psql postgres://postgres:postgres@localhost:5432/postgres
 

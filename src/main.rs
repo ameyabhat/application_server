@@ -14,6 +14,7 @@ mod model;
 // Gonna need to handle TLS certs here when I deploy - lets look at NGINX
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = dotenv::dotenv()?;
     pretty_env_logger::init();
 
     let conn_string = match env::var("DATABASE_URL") {
@@ -28,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let o = match pool {
         Ok(p) => {
-            info!("Connnected to db!");
+            info!("Connection established to Postgres DB");
             Some(p)
         }
         Err(e) => {
