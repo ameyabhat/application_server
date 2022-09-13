@@ -19,10 +19,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let conn_string = match env::var("DATABASE_URL") {
         Ok(db_url) => db_url,
-        Err(_) => format!(
-            "postgres://{}:{}@127.0.0.1:{}/{}",
-            "postgres", "postgres", 5432, "postgres"
-        ),
+        Err(_) => {
+            warn!("DATABASE_URL environment wasn't read in properly - using default value");
+            format!(
+                "postgres://{}:{}@127.0.0.1:{}/{}",
+                "postgres", "postgres", 5432, "postgres"
+            )
+        }
     };
 
     let pool = PgPool::connect(&conn_string).await;

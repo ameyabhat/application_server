@@ -80,6 +80,7 @@ pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Infal
 // should switch away from nightly - it'll make deployment more stable as well
 pub async fn handle_get_applicant(nuid: String, p: PgPool) -> Result<impl Reply, Rejection> {
     // look up the applicant
+    info!("Fetching applicant: {}", nuid);
     match get_applicants(p, &[nuid.clone()]).await {
         Ok(applicant) => {
             let code;
@@ -99,11 +100,15 @@ pub async fn handle_get_applicant(nuid: String, p: PgPool) -> Result<impl Reply,
         }
         // This will just bubble down to a 500 which seems super reasonable
         // Assuming that this is a sql error - no other reason that this would fail
-        Err(e) => Err(reject::custom(e)),
+        Err(e) => {
+            error!("Something went wrong fetching the applicant: {:?}", e);
+            Err(reject::custom(e))
+        }
     }
 }
 
 pub async fn handle_get_applicants(nuids: Vec<String>, p: PgPool) -> Result<impl Reply, Rejection> {
+    info!("Fetching applicants: {:#?}", nuids);
     match get_applicants(p, &nuids).await {
         Ok(applicants) => {
             if applicants.len() == nuids.len() {
@@ -124,7 +129,10 @@ pub async fn handle_get_applicants(nuids: Vec<String>, p: PgPool) -> Result<impl
                 }))
             }
         }
-        Err(_) => todo!("falling through here"),
+        Err(e) => {
+            error!("Something went wrong fetching the applicants: {:?}", e);
+            Err(reject::custom(e))
+        }
     }
 }
 
@@ -140,7 +148,10 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> Result<impl
             challenge_string,
         })),
         // Should be a 409 conflict error if the error doesnt exist,
-        Err(e) => Err(reject::custom(e)),
+        Err(e) => {
+            error!("Something went wrong registering the user {:?}", e);
+            Err(reject::custom(e))
+        }
     }
 }
 
@@ -151,6 +162,10 @@ pub async fn handle_submit(
     soln: HashMap<String, u64>,
     p: PgPool,
 ) -> Result<impl Reply, Rejection> {
+    info!(
+        "Receiving submission from user with token: {:?}\nsubmission: {:#?}",
+        token, soln
+    );
     // Depending on what check solution does, either return a reply json or a rejection
     match check_solution(p, token, &soln).await {
         Ok((is_correct, expected_soln)) => {
@@ -163,16 +178,23 @@ pub async fn handle_submit(
                 }))
             }
         }
-        Err(e) => Err(reject::custom(e)),
+        Err(e) => {
+            error!("Submission Failed: {:?}", e);
+            Err(reject::custom(e))
+        }
     }
 }
 
 pub async fn handle_forgot_token(nuid: String, p: PgPool) -> Result<impl Reply, Rejection> {
-    match retreive_token(p, nuid).await {
+    info!("Fetching token for user: {}", nuid);
+    match retreive_token(p, nuid.clone()).await {
         Ok(token) => Ok(reply::json(&HandleForgotTokenResponse {
             token: token.to_string(),
         })),
-        Err(e) => Err(reject::custom(e)),
+        Err(e) => {
+            error!("Fetching token failed for user {}: {:?}", nuid, e);
+            Err(reject::custom(e))
+        }
     }
 }
 
@@ -183,9 +205,13 @@ pub async fn health_check() -> Result<impl Reply, Rejection> {
 }
 
 pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> Result<impl Reply, Rejection> {
+    info!("Fetching challenge string for user with token: {}", token);
     match retreive_challenge(&pool, token).await {
         Ok(challenge_string) => Ok(reply::json(&GetChallengeString { challenge_string })),
-        Err(e) => Err(reject::custom(e)),
+        Err(e) => {
+            error!("Fetching challenge_string failed {:?}", e);
+            Err(reject::custom(e))
+        }
     }
 }
 
