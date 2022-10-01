@@ -4,7 +4,8 @@ RUN cd / &&\
 	cargo new app 
 WORKDIR /app
 
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml Cargo.lock sqlx-data.json ./
+ENV SQLX_OFFLINE true
 ADD .local.env ./.env
 
 RUN cargo build

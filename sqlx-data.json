@@ -1,0 +1,144 @@
+{
+  "db": "PostgreSQL",
+  "08063a95d5eabc8b1ca9eae67d6e89b03d08ad88ae0379ac6e5b3fd9dbca9022": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar",
+          "Timestamptz",
+          "Uuid",
+          "Varchar",
+          "Json"
+        ]
+      }
+    },
+    "query": "INSERT INTO applicants (nuid, applicant_name, registration_time, token, challenge_string, solution)\n         VALUES ($1, $2, $3, $4, $5, $6);"
+  },
+  "3e3b633183fa5d0afecdadc7f915a3f1fbb0ba584d1fb7058b14aae2e8109480": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Bool",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "INSERT INTO submissions (nuid, ok, submission_time) VALUES ($1, $2, $3);"
+  },
+  "7cf28b669a8b66dca8931b5cd5007419f6e1eff4b411e80b21449b92088b1528": {
+    "describe": {
+      "columns": [
+        {
+          "name": "challenge_string",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "select challenge_string from applicants where token=$1"
+  },
+  "a79196f11aa492165103b40b2b521daf937020143bf815d67f20cb19a7be8a2b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "token",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT token FROM applicants WHERE nuid=$1"
+  },
+  "b06672582c8c0fa21f1ae232658848beaf73267a7fd2fc95ff5b6ca909ab83b4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "nuid",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "solution",
+          "ordinal": 1,
+          "type_info": "Json"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT nuid, solution FROM applicants WHERE token=$1"
+  },
+  "dd30f213b7fc847eb4b2c955b251c445429ca10f4059a0a4a2781c3923277b4f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "nuid",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "applicant_name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "ok",
+          "ordinal": 2,
+          "type_info": "Bool"
+        },
+        {
+          "name": "submission_time",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "registration_time",
+          "ordinal": 4,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "SELECT DISTINCT ON (nuid) nuid, applicant_name, ok, submission_time, \n        registration_time FROM submissions JOIN applicants using(nuid) where \n        nuid=ANY($1) ORDER BY nuid, submission_time DESC;"
+  }
+}
