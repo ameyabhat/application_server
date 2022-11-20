@@ -15,3 +15,4 @@ COPY ./src src
 RUN touch src/main.rs && cargo build --release
 
 EXPOSE 8000
+ENTRYPOINT ["./target/release/generate-tech-app"]
