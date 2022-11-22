@@ -3,6 +3,8 @@
 version: '3'
 
 tasks:
+  run:
+    - RUST_LOG=info cargo run 
   up:
     - docker compose --env-file .local.env up -d
   down:
@@ -18,4 +20,5 @@ tasks:
       - docker compose down db --volumes
       - task: db
   connect:
-    - psql postgres://postgres:postgres@localhost:5432/postgres
+    - psql postgres://generate_admin:generate_tech_app@localhost:5432/applications
+

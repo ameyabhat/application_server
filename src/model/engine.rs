@@ -55,8 +55,8 @@ pub async fn register_user(
     {
         Ok(()) => Ok((token, challenge_str)),
         // there's a bunch of different ways that this can fail, I should probably
-        // handle the error
-        Err(_) => Err(ModelError::DuplicateUser),
+        // handle the error -
+        Err(_e) => Err(ModelError::DuplicateUser),
     }
 }
 
