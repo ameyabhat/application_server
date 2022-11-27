@@ -1,17 +1,18 @@
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct DatabaseSettings {
+    pub url: Option<String>,
     pub username: String,
     pub password: String,
     pub database_name: String,
@@ -37,6 +38,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(config::File::from(
             configuration_directory.join(&environment_filename),
         ))
+        .add_source(config::Environment::default().separator("_"))
         .build()?;
 
     settings.try_deserialize::<Settings>()
@@ -68,7 +70,7 @@ impl TryFrom<String> for Environment {
             "production" => Ok(Self::Production),
             other => Err(format!(
                 "{} is not a supported environment. \
-Use either `local` or `production`.",
+Use either `local`, `docker`, or `production`.",
                 other
             )),
         }
@@ -77,17 +79,71 @@ Use either `local` or `production`.",
 
 impl Settings {
     pub fn connection_string(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.database.username,
-            self.database.password,
-            self.application.host,
-            5432,
-            self.database.database_name
-        )
+        match &self.database.url {
+            Some(url) => {
+                info!("Pulling db connection string from .env");
+                url.to_string()
+            }
+            None => {
+                info!("Pulling db connection string from config file");
+                format!(
+                    "postgres://{}:{}@{}:{}/{}",
+                    self.database.username,
+                    self.database.password,
+                    self.application.host,
+                    5432,
+                    self.database.database_name
+                )
+            }
+        }
     }
 
     pub fn port(&self) -> u16 {
         self.application.port
     }
+}
+
+#[test]
+fn test_parse_int() {
+    use config::{Config, Environment};
+    use std::path::PathBuf;
+    #[derive(serde::Deserialize, Clone, Debug)]
+    pub struct Settings {
+        pub database: DatabaseSettings,
+        pub application: ApplicationSettings,
+    }
+
+    #[derive(serde::Deserialize, Clone, Debug)]
+    pub struct ApplicationSettings {
+        pub port: u16,
+        pub host: String,
+    }
+
+    #[derive(serde::Deserialize, Clone, Debug)]
+    pub struct DatabaseSettings {
+        pub url: Option<String>,
+        pub username: String,
+        pub password: String,
+        pub database_name: String,
+    }
+
+    temp_env::with_var("DATABASE_URL", Some("database@databaseurl"), || {
+        let environment = Environment::default().separator("_");
+
+        let config = Config::builder()
+            .add_source(config::File::from(PathBuf::from("configuration/base.yaml")))
+            .add_source(config::File::from(PathBuf::from(
+                "configuration/docker.yaml",
+            )))
+            .add_source(environment)
+            .build()
+            .unwrap();
+
+        let config: Settings = config.try_deserialize().unwrap();
+
+        assert_eq!(
+            config.database.url.unwrap(),
+            String::from("database@databaseurl")
+        );
+    })
 }

@@ -1,6 +1,7 @@
+-- Add migration script here
 CREATE USER "generate_admin" WITH PASSWORD 'generate_tech_app';
 
-CREATE TABLE applicants (
+CREATE TABLE IF NOT EXISTS applicants (
     nuid varchar PRIMARY KEY,
     applicant_name varchar NOT NULL,
     registration_time timestamp with time zone NOT NULL,
@@ -9,7 +10,7 @@ CREATE TABLE applicants (
     solution json NOT NULL
 );
 
-CREATE TABLE submissions (
+CREATE TABLE IF NOT EXISTS submissions (
     submission_id serial PRIMARY KEY,
     -- solution_id integer NOT NULL REFERENCES problems (solution_id),
     nuid varchar NOT NULL REFERENCES applicants (nuid),

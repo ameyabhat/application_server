@@ -15,27 +15,23 @@ mod model;
 // Gonna need to handle TLS certs here when I deploy - lets look at NGINX
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = dotenv::dotenv();
     pretty_env_logger::init();
 
     let configuration = get_configuration().expect("Failed to read configuration file");
 
+    info!("{:?}", configuration);
     let conn_string = configuration.connection_string();
 
-    let pool = PgPool::connect(&conn_string).await;
+    let pool = PgPool::connect(&conn_string).await?;
 
-    let o = match pool {
-        Ok(p) => {
-            info!("Connection established to Postgres DB");
-            Some(p)
-        }
-        Err(e) => {
-            panic!("Error connecting to db: {}", e);
-        }
-    };
+    info!("Connection established to Postgres DB");
+
+    sqlx::migrate!().run(&pool).await?;
 
     info!("Starting submission server");
 
-    warp::serve(endpoints::end(o))
+    warp::serve(endpoints::end(Some(pool)))
         .run(([0, 0, 0, 0], configuration.port()))
         .await;
 

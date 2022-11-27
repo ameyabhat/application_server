@@ -24,11 +24,11 @@ services:
       - '5432:5432'
     volumes:
       - db:/var/lib/postgresql/data
-      - ./src/db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
   api:
     container_name: generate-tech-app
     build:
       context: ./
+      dockerfile: Dockerfile.test
     image: generate-tech-app
     depends_on:
       - db
