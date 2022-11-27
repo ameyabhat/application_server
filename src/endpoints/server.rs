@@ -155,7 +155,6 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> Result<impl
     }
 }
 
-//pub async fn get_challenge_string(_token: String) -> Result<impl Reply, Rejection> {}
 // On error, send back a 400
 pub async fn handle_submit(
     token: Uuid,
@@ -207,7 +206,10 @@ pub async fn health_check() -> Result<impl Reply, Rejection> {
 pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> Result<impl Reply, Rejection> {
     info!("Fetching challenge string for user with token: {}", token);
     match retreive_challenge(&pool, token).await {
-        Ok(challenge_string) => Ok(reply::json(&GetChallengeString { challenge_string })),
+        Ok(challenge_string) => {
+            info!("Challenge string: {}", challenge_string);
+            Ok(reply::json(&GetChallengeString { challenge_string }))
+        }
         Err(e) => {
             error!("Fetching challenge_string failed {:?}", e);
             Err(reject::custom(e))
@@ -289,5 +291,5 @@ mod tests {
     // We'll write API tests here eventually - i wonder if I can write service tests
     // using docker compose. Should probably figure out how to do that for generate
 
-    // You can just mock the DB
+    // You can just mock the DB, you absolute muppet
 }

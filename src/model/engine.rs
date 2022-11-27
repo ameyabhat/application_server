@@ -43,16 +43,7 @@ pub async fn register_user(
     let challenge_str = generate_challenge_string();
     let soln = find_kmers(&challenge_str, 3);
 
-    match db::transactions::register_user_db(
-        &pool,
-        token,
-        name,
-        nuid,
-        generate_challenge_string(),
-        soln,
-    )
-    .await
-    {
+    match db::transactions::register_user_db(&pool, token, name, nuid, &challenge_str, soln).await {
         Ok(()) => Ok((token, challenge_str)),
         // there's a bunch of different ways that this can fail, I should probably
         // handle the error -

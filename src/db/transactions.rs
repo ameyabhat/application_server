@@ -12,7 +12,7 @@ pub async fn register_user_db(
     token: Uuid,
     name: String,
     nuid: String,
-    challenge_string: String,
+    challenge_string: &String,
     solution: HashMap<String, u64>,
 ) -> Result<(), sqlx::Error> {
     // Insert the applicant
