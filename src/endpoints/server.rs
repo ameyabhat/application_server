@@ -149,7 +149,7 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> Result<impl
         })),
         // Should be a 409 conflict error if the error doesnt exist,
         Err(e) => {
-            error!("Something went wrong registering the user {:?}", e);
+            error!("Something went wrong registering the user: {:?}", e);
             Err(reject::custom(e))
         }
     }
