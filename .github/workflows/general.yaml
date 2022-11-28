@@ -23,15 +23,11 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: money123
+          POSTGRES_DB: applications
         ports:
           - 5432:5432
-      redis:
-        image: redis:6
-        ports:
-          - 6379:6379
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
@@ -80,7 +76,8 @@ jobs:
       - name: Migrate database
         run: |
           sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+          docker compose up db -d
+          sqlx migrate run
 
       - name: Check sqlx-data.json is up-to-date
         run: |
@@ -113,9 +110,9 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: money123
+          POSTGRES_DB: applications
         ports:
           - 5432:5432
     env:
@@ -156,7 +153,8 @@ jobs:
       - name: Migrate database
         run: |
           sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+          docker compose up db -d
+          sqlx migrate run
 
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
@@ -171,15 +169,11 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: money123
+          POSTGRES_DB: applications
         ports:
           - 5432:5432
-      redis:
-        image: redis:6
-        ports:
-          - 6379:6379
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
@@ -217,7 +211,8 @@ jobs:
       - name: Migrate database
         run: |
           sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+          docker compose up db -d
+          sqlx migrate run
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
