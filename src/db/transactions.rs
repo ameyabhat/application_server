@@ -98,7 +98,7 @@ pub async fn retreive_soln(
 
     match serde_json::from_value(record.solution) {
         Ok(soln) => Ok((soln, record.nuid)),
-        Err(_e) => panic!("solution didn't deserialize properly"),
+        Err(_e) => panic!("solution didn't deserialize properly - this should never happen"),
     }
 }
 

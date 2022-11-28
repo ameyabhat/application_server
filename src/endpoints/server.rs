@@ -255,7 +255,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
             }
             ModelError::SqlError => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
-                msg = api_err!("SQL Error - text me if this happens");
+                msg = api_err!("Something went wrong on our side - email me at bhat.am@northeastern.edu if this happens");
                 warn!("{:?}", err)
             }
             ModelError::NoUserFound => {
@@ -280,7 +280,8 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
         );
     } else {
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        msg = api_err!("UNHANDLED_REJECTION");
+        msg =
+            api_err!("Unhandled rejection - email me at bhat.am@northeastern.edu if this happens");
         warn!("{:?}", err)
     }
 

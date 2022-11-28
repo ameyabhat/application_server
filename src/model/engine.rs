@@ -74,8 +74,8 @@ pub async fn check_solution(
     match db::transactions::retreive_soln(&pool, token).await {
         Ok((soln, nuid)) => {
             let ok = soln == *given_soln;
-            if let Err(e) = db::transactions::write_submission(pool, nuid, ok).await {
-                panic!("We failed to write the submission properly: {}", e)
+            if let Err(_e) = db::transactions::write_submission(pool, nuid, ok).await {
+                return Err(ModelError::SqlError);
             }
             Ok((ok, soln))
         }
