@@ -6,7 +6,7 @@ on:
   # this specific branch (a.k.a. book chapter).
   push:
     branches:
-      - main
+      - "**"
   pull_request:
     types: [ opened, synchronize, reopened ]
     branches:
