@@ -167,12 +167,11 @@ pub async fn handle_submit(
     );
     // Depending on what check solution does, either return a reply json or a rejection
     match check_solution(p, token, &soln).await {
-        Ok((is_correct, expected_soln)) => {
+        Ok(is_correct) => {
             if is_correct {
                 Ok(reply::json(&"Correct! Nice work".to_string()))
             } else {
                 Err(reject::custom(ModelError::IncorrectSolution {
-                    expected_solution: expected_soln,
                     given_solution: soln.clone(),
                 }))
             }
@@ -227,14 +226,10 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
                 msg = api_err!("This NUID has already been used to register");
                 code = StatusCode::CONFLICT;
             }
-            ModelError::IncorrectSolution {
-                expected_solution,
-                given_solution,
-            } => {
+            ModelError::IncorrectSolution { given_solution } => {
                 msg = api_err!(
                     "Incorrect solution",
                     ApiError::IncorrectSolution {
-                        expected_solution: expected_solution.clone(),
                         given_solution: given_solution.clone()
                     }
                 );

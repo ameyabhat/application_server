@@ -9,7 +9,6 @@ use crate::model::types::Applicant;
 pub enum ApiError {
     DuplicateUser,
     IncorrectSolution {
-        expected_solution: HashMap<String, u64>,
         given_solution: HashMap<String, u64>,
     },
     DeserializeError,
@@ -24,7 +23,6 @@ pub enum ApiError {
 pub enum ModelError {
     #[error("Incorrect solution")]
     IncorrectSolution {
-        expected_solution: HashMap<String, u64>,
         given_solution: HashMap<String, u64>,
     },
     #[error("A registration with this NUID exists")]

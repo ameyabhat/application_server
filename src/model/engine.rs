@@ -69,7 +69,7 @@ pub async fn check_solution(
     pool: PgPool,
     token: Uuid,
     given_soln: &HashMap<String, u64>,
-) -> Result<(bool, HashMap<String, u64>), ModelError> {
+) -> Result<bool, ModelError> {
     // Check if the solution is correct - write the row to the solutions table
     match db::transactions::retreive_soln(&pool, token).await {
         Ok((soln, nuid)) => {
@@ -77,7 +77,7 @@ pub async fn check_solution(
             if let Err(_e) = db::transactions::write_submission(pool, nuid, ok).await {
                 return Err(ModelError::SqlError);
             }
-            Ok((ok, soln))
+            Ok(ok)
         }
         Err(_) => Err(ModelError::NoUserFound),
     }
