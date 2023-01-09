@@ -23,6 +23,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("{:?}", configuration);
     let conn_string = configuration.connection_string();
 
+    info!("{:?}", conn_string);
     let pool = PgPool::connect(&conn_string).await?;
 
     info!("Connection established to Postgres DB");

@@ -107,25 +107,6 @@ impl Settings {
 fn test_parse_int() {
     use config::{Config, Environment};
     use std::path::PathBuf;
-    #[derive(serde::Deserialize, Clone, Debug)]
-    pub struct Settings {
-        pub database: DatabaseSettings,
-        pub application: ApplicationSettings,
-    }
-
-    #[derive(serde::Deserialize, Clone, Debug)]
-    pub struct ApplicationSettings {
-        pub port: u16,
-        pub host: String,
-    }
-
-    #[derive(serde::Deserialize, Clone, Debug)]
-    pub struct DatabaseSettings {
-        pub url: Option<String>,
-        pub username: String,
-        pub password: String,
-        pub database_name: String,
-    }
 
     temp_env::with_var("DATABASE_URL", Some("database@databaseurl"), || {
         let environment = Environment::default().separator("_");

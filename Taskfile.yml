@@ -20,5 +20,5 @@ tasks:
       - docker compose down db --volumes
       - task: db
   connect:
-    - psql postgres://generate_admin:generate_tech_app@localhost:5432/applications
+    - psql postgres://root:money123@localhost:5432/applications
 

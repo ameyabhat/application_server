@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:14.1-alpine
+    image: postgres:15
     restart: always
     healthcheck:
       test:
@@ -11,7 +11,7 @@ services:
           "-d",
           "postgres",
           "-U",
-          "generate_admin"
+          "root"
         ]
       timeout: 45s
       interval: 10s
@@ -33,7 +33,7 @@ services:
     depends_on:
       - db
     ports:
-      - 8000:8000
+      - 8080:8080
     links:
       - db
     volumes:
