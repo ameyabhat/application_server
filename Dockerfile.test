@@ -41,7 +41,7 @@ COPY --from=builder /app/target/release/generate-tech-app generate-tech-app
 
 COPY configuration configuration
 
-ENV APP_ENVIRONMENT production
+ENV APP_ENVIRONMENT docker
 ENV RUST_LOG info
 
 ENTRYPOINT ["./generate-tech-app"]

@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:14.1-alpine
+    image: postgres:15
     restart: always
     healthcheck:
       test:
@@ -11,29 +11,29 @@ services:
           "-d",
           "postgres",
           "-U",
-          "generate_admin"
+          "root"
         ]
       timeout: 45s
       interval: 10s
       retries: 10
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=money123
+      - POSTGRES_DB=applications
     ports:
       - '5432:5432'
     volumes:
       - db:/var/lib/postgresql/data
-      - ./src/db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
   api:
     container_name: generate-tech-app
-    command: ./target/release/generate-tech-app
     build:
       context: ./
+      dockerfile: Dockerfile.test
     image: generate-tech-app
     depends_on:
       - db
     ports:
-      - 8000:8000
+      - 8080:8080
     links:
       - db
     volumes:

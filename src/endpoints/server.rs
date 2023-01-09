@@ -149,13 +149,12 @@ pub async fn handle_register(request: RegisterRequest, p: PgPool) -> Result<impl
         })),
         // Should be a 409 conflict error if the error doesnt exist,
         Err(e) => {
-            error!("Something went wrong registering the user {:?}", e);
+            error!("Something went wrong registering the user: {:?}", e);
             Err(reject::custom(e))
         }
     }
 }
 
-//pub async fn get_challenge_string(_token: String) -> Result<impl Reply, Rejection> {}
 // On error, send back a 400
 pub async fn handle_submit(
     token: Uuid,
@@ -168,12 +167,11 @@ pub async fn handle_submit(
     );
     // Depending on what check solution does, either return a reply json or a rejection
     match check_solution(p, token, &soln).await {
-        Ok((is_correct, expected_soln)) => {
+        Ok(is_correct) => {
             if is_correct {
                 Ok(reply::json(&"Correct! Nice work".to_string()))
             } else {
                 Err(reject::custom(ModelError::IncorrectSolution {
-                    expected_solution: expected_soln,
                     given_solution: soln.clone(),
                 }))
             }
@@ -207,7 +205,10 @@ pub async fn health_check() -> Result<impl Reply, Rejection> {
 pub async fn handle_get_challenge(token: Uuid, pool: PgPool) -> Result<impl Reply, Rejection> {
     info!("Fetching challenge string for user with token: {}", token);
     match retreive_challenge(&pool, token).await {
-        Ok(challenge_string) => Ok(reply::json(&GetChallengeString { challenge_string })),
+        Ok(challenge_string) => {
+            info!("Challenge string: {}", challenge_string);
+            Ok(reply::json(&GetChallengeString { challenge_string }))
+        }
         Err(e) => {
             error!("Fetching challenge_string failed {:?}", e);
             Err(reject::custom(e))
@@ -225,14 +226,10 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
                 msg = api_err!("This NUID has already been used to register");
                 code = StatusCode::CONFLICT;
             }
-            ModelError::IncorrectSolution {
-                expected_solution,
-                given_solution,
-            } => {
+            ModelError::IncorrectSolution { given_solution } => {
                 msg = api_err!(
                     "Incorrect solution",
                     ApiError::IncorrectSolution {
-                        expected_solution: expected_solution.clone(),
                         given_solution: given_solution.clone()
                     }
                 );
@@ -253,7 +250,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
             }
             ModelError::SqlError => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
-                msg = api_err!("SQL Error - text me if this happens");
+                msg = api_err!("Something went wrong on our side - email me at bhat.am@northeastern.edu if this happens");
                 warn!("{:?}", err)
             }
             ModelError::NoUserFound => {
@@ -278,7 +275,8 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
         );
     } else {
         code = StatusCode::INTERNAL_SERVER_ERROR;
-        msg = api_err!("UNHANDLED_REJECTION");
+        msg =
+            api_err!("Unhandled rejection - email me at bhat.am@northeastern.edu if this happens");
         warn!("{:?}", err)
     }
 
@@ -289,5 +287,5 @@ mod tests {
     // We'll write API tests here eventually - i wonder if I can write service tests
     // using docker compose. Should probably figure out how to do that for generate
 
-    // You can just mock the DB
+    // You can just mock the DB, you absolute muppet
 }

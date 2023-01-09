@@ -1,4 +1,5 @@
 /target
+client/venv
 .cargo/
 .DS_Store
 /*.env

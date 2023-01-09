@@ -1,0 +1,9 @@
+#! configuration/base.yaml
+application:
+  port: 8080
+database:
+  host: "localhost"
+  port: 5432
+  username: "root"
+  password: "money123"
+  database_name: "applications"

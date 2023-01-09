@@ -12,7 +12,7 @@ pub async fn register_user_db(
     token: Uuid,
     name: String,
     nuid: String,
-    challenge_string: String,
+    challenge_string: &String,
     solution: HashMap<String, u64>,
 ) -> Result<(), sqlx::Error> {
     // Insert the applicant
@@ -98,7 +98,7 @@ pub async fn retreive_soln(
 
     match serde_json::from_value(record.solution) {
         Ok(soln) => Ok((soln, record.nuid)),
-        Err(_e) => panic!("solution didn't deserialize properly"),
+        Err(_e) => panic!("solution didn't deserialize properly - this should never happen"),
     }
 }
 

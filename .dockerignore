@@ -1,0 +1,5 @@
+# flyctl launch added from .gitignore
+target
+**/.cargo
+**/.DS_Store
+*.env

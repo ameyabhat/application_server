@@ -43,20 +43,11 @@ pub async fn register_user(
     let challenge_str = generate_challenge_string();
     let soln = find_kmers(&challenge_str, 3);
 
-    match db::transactions::register_user_db(
-        &pool,
-        token,
-        name,
-        nuid,
-        generate_challenge_string(),
-        soln,
-    )
-    .await
-    {
+    match db::transactions::register_user_db(&pool, token, name, nuid, &challenge_str, soln).await {
         Ok(()) => Ok((token, challenge_str)),
         // there's a bunch of different ways that this can fail, I should probably
-        // handle the error
-        Err(_) => Err(ModelError::DuplicateUser),
+        // handle the error -
+        Err(_e) => Err(ModelError::DuplicateUser),
     }
 }
 
@@ -78,15 +69,15 @@ pub async fn check_solution(
     pool: PgPool,
     token: Uuid,
     given_soln: &HashMap<String, u64>,
-) -> Result<(bool, HashMap<String, u64>), ModelError> {
+) -> Result<bool, ModelError> {
     // Check if the solution is correct - write the row to the solutions table
     match db::transactions::retreive_soln(&pool, token).await {
         Ok((soln, nuid)) => {
             let ok = soln == *given_soln;
-            if let Err(e) = db::transactions::write_submission(pool, nuid, ok).await {
-                panic!("We failed to write the submission properly: {}", e)
+            if let Err(_e) = db::transactions::write_submission(pool, nuid, ok).await {
+                return Err(ModelError::SqlError);
             }
-            Ok((ok, soln))
+            Ok(ok)
         }
         Err(_) => Err(ModelError::NoUserFound),
     }
