@@ -7,7 +7,7 @@ use super::messages::{
 };
 use super::routes::{
     forgot_token_route, get_applicant_route, get_applicants_route, get_challenge_string_route,
-    health, register_route, submit, with_db,
+    health, register_route, submit,
 };
 use crate::endpoints::ApiError;
 use crate::model::{

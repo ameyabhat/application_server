@@ -51,20 +51,3 @@ pub fn get_applicants_route() -> BoxedFilter<(Vec<String>,)> {
 
     warp::get().and(route).and(warp::body::json()).boxed()
 }
-
-// All this does is include the db pool in scope, it shouldn't change the actual route
-pub fn with_db(o: Option<PgPool>) -> impl Filter<Extract = (PgPool,), Error = Infallible> + Clone {
-    warp::any().map(move || {
-        // This is is fine b/c a PgPool is just a reference counted
-        // pointer to an inner db. The implementation uses Arc
-        o.clone()
-        // let o = o.clone();
-        // {
-        //     if let Some(pool) = o {
-        //         Ok(pool)
-        //     } else {
-        //         Err(warp::reject::not_found())
-        //     }
-        // }
-    })
-}
