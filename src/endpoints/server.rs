@@ -21,20 +21,6 @@ use warp::hyper::StatusCode;
 use warp::reject::MethodNotAllowed;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
-/*
-   The expansion should look something like
-   handle!(route, handler) => {
-    route().and(with_db(o.clone)).and_then(handler)
-   }
-*/
-
-#[macro_export]
-macro_rules! handle_with_db {
-    ($route:expr, $db:expr, $handler:expr) => {
-        $route().and(with_db($db.clone())).and_then($handler)
-    };
-}
-
 #[macro_export]
 macro_rules! api_err {
     ($msg:expr, $api_err:expr) => {
@@ -52,25 +38,35 @@ macro_rules! api_err {
 }
 
 pub fn end(o: Option<PgPool>) -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone {
-    handle_with_db!(register_route, o, handle_register)
-        .or(handle_with_db!(forgot_token_route, o, handle_forgot_token))
-        .or(handle_with_db!(submit, o, handle_submit))
-        .or(handle_with_db!(
-            get_challenge_string_route,
-            o,
-            handle_get_challenge
-        ))
-        .or(health().and_then(health_check))
-        .or(handle_with_db!(
-            get_applicant_route,
-            o,
-            handle_get_applicant
-        ))
-        .or(handle_with_db!(
-            get_applicants_route,
-            o,
-            handle_get_applicants
-        ))
+    let pool = o.unwrap();
+    let with_db = warp::any().map(move || pool.clone());
+
+    let register = register_route()
+        .and(with_db.clone())
+        .and_then(handle_register);
+    let forgot_token = forgot_token_route()
+        .and(with_db.clone())
+        .and_then(handle_forgot_token);
+
+    let submit = submit().and(with_db.clone()).and_then(handle_submit);
+    let health = health().and_then(health_check);
+    let get_challenge = get_challenge_string_route()
+        .and(with_db.clone())
+        .and_then(handle_get_challenge);
+    let get_applicants = get_applicants_route()
+        .and(with_db.clone())
+        .and_then(handle_get_applicants);
+    let get_applicant = get_applicant_route()
+        .and(with_db.clone())
+        .and_then(handle_get_applicant);
+
+    register
+        .or(forgot_token)
+        .or(submit)
+        .or(health)
+        .or(get_challenge)
+        .or(get_applicants)
+        .or(get_applicant)
         .recover(handle_rejection)
 }
 

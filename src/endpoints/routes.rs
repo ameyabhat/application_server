@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::Infallible;
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -52,17 +53,18 @@ pub fn get_applicants_route() -> BoxedFilter<(Vec<String>,)> {
 }
 
 // All this does is include the db pool in scope, it shouldn't change the actual route
-pub fn with_db(o: Option<PgPool>) -> impl Filter<Extract = (PgPool,), Error = Rejection> + Clone {
-    warp::any().and_then(move || {
+pub fn with_db(o: Option<PgPool>) -> impl Filter<Extract = (PgPool,), Error = Infallible> + Clone {
+    warp::any().map(move || {
         // This is is fine b/c a PgPool is just a reference counted
         // pointer to an inner db. The implementation uses Arc
-        let o = o.clone();
-        async move {
-            if let Some(pool) = o {
-                Ok(pool)
-            } else {
-                Err(warp::reject::not_found())
-            }
-        }
+        o.clone()
+        // let o = o.clone();
+        // {
+        //     if let Some(pool) = o {
+        //         Ok(pool)
+        //     } else {
+        //         Err(warp::reject::not_found())
+        //     }
+        // }
     })
 }
